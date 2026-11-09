@@ -140,6 +140,17 @@ export class ShuttleController {
   ) {}
 
   @Public()
+  @Get()
+  root() {
+    return {
+      status: "online",
+      service: "UIU Shuttle Tracker Backend API",
+      version: "1.0.0",
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Public()
   @Get("routes")
   routes() {
     return this.database
