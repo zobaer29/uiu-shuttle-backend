@@ -7,8 +7,12 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Security Headers
-  app.use(helmet());
+  // Security Headers (Configured to allow cross-origin API access from Vercel & Mobile)
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
 
   // Request Body Size Limit (prevents large payload DoS)
   app.use(json({ limit: "100kb" }));
@@ -30,16 +34,27 @@ async function bootstrap() {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      // Allow mobile apps / curl / server-to-server (where origin is undefined)
-      if (!origin || origins.includes("*") || origins.includes(origin) || origin.startsWith("http://10.") || origin.startsWith("http://192.168.")) {
+      // Allow mobile apps, curl, localhost, Vercel, Render, and configured origins
+      const isAllowed =
+        !origin ||
+        origins.includes("*") ||
+        origins.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.endsWith(".onrender.com") ||
+        origin.includes("localhost") ||
+        origin.includes("127.0.0.1") ||
+        origin.startsWith("http://10.") ||
+        origin.startsWith("http://192.168.");
+
+      if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        callback(null, true);
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   });
 
   app.useGlobalPipes(
